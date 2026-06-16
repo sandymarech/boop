@@ -1,0 +1,272 @@
+1.3  Attack Chain & Technologies
+Phase
+Action
+Attacker Tools
+Targeted Asset
+1 — Initial Access
+Affiliates authenticate directly against internet-facing VPN portals using credentials pre-sourced from dark web markets and infostealer logs — no phishing required. Where VPN credentials are unavailable, invoice or payment-themed spearphishing lures targeting finance staff serve as the fallback entry point.[5,6]
+Dark web credential markets; Lumma/Redline infostealer logs; phishing kit
+VPN Gateway; Employee email
+2 — Reconnaissance
+BloodHound and SharpHound enumerate Active Directory to identify the shortest privilege escalation path to domain admin, while RustScan sweeps internal ranges to inventory file servers, application servers, and backup infrastructure — building the target map used to maximize encryption coverage in the final phase.[5,7]
+BloodHound / SharpHound; RustScan
+Active Directory; Internal network topology
+3 — Persistence & Credential Harvest
+A custom PowerShell script (IPScanner.ps1) is pushed silently to all domain-joined endpoints via GPO, running on every user logon and extracting saved passwords from Chrome's SQLite credential store. Collected databases are staged to SYSVOL — giving operators plaintext credentials to financial portals, email, and VPNs across the entire domain during a silent 72-hour window before encryption fires.[6]
+IPScanner.ps1 (custom GPO-deployed script); Chrome SQLite (Login Data); SYSVOL staging
+Group Policy / SYSVOL; Chrome browser (enterprise deployment)
+4 — Lateral Movement
+With domain admin credentials obtained from the BloodHound escalation path or Chrome harvest, affiliates pivot freely via RDP, WMI, and PsExec — no additional tooling required once domain admin is held. Mimikatz dumps LSASS on high-value hosts to harvest further credentials for any remaining restricted systems.[5,7]
+PsExec; WMI; Mimikatz (LSASS dump); RDP
+Windows domain-joined servers; LSASS process
+5 — Exfiltration
+Loan records, insurance policy data, and customer PII are transferred to attacker-controlled cloud storage via Cyberduck or rclone hours before encryption triggers — establishing the double-extortion position. If the ransom is refused, publication on Qilin's dark web DLS independently triggers LGPD breach notification obligations regardless of payment.[5,6]
+Cyberduck (S3-compatible transfer); rclone
+File servers; Loan & policy databases; Customer PII stores
+6 — Encryption & Impact
+A GPO-scheduled task fires simultaneously across every domain-joined Windows system — there is no sequential spread and no containment window once execution begins. bcdedit forces a safe mode reboot beforehand to strip endpoint protection, shadow copies are deleted to eliminate local recovery, and Windows event logs are wiped post-execution to frustrate forensic response.[5,6,7]
+Qilin.B (Rust payload); GPO scheduled task; bcdedit; vssadmin; wmic shadowcopy
+All domain-joined Windows endpoints and servers; Backup infrastructure; VSS snapshots
+
+
+1.4  MITRE ATT&CK Mapping
+Tactic
+TTP ID
+Technique & Notes
+Initial Access
+T1078
+Valid Accounts — VPN credential abuse from dark web / infostealer logs
+Initial Access
+T1566
+Phishing — spearphishing link/attachment (secondary vector)
+Execution
+T1059.001
+PowerShell — IPScanner.ps1 Chrome credential harvester deployed via GPO
+Execution
+T1072
+Software Deployment Tools — GPO-based ransomware mass deployment
+Persistence
+T1484.001
+Group Policy Modification — GPO weaponized for persistence & execution
+Persistence
+T1053.005
+Scheduled Task/Job — GPO-triggered scheduled task for simultaneous encryption
+Defense Evasion
+T1562.001
+Impair Defenses — safe mode reboot via bcdedit to disable EDR pre-encryption
+Defense Evasion
+T1070.001
+Clear Windows Event Logs — post-encryption log wipe
+Credential Access
+T1003.001
+OS Credential Dumping — LSASS memory access via Mimikatz
+Credential Access
+T1555.003
+Credentials from Web Browsers — Chrome SQLite harvest via GPO-deployed script
+Discovery
+T1018
+Remote System Discovery — BloodHound / SharpHound AD enumeration
+Discovery
+T1046
+Network Service Scanning — RustScan sweeping internal hosts for file servers, app servers, and backup infrastructure
+Lateral Movement
+T1021.001
+Remote Services — RDP for interactive lateral movement
+Lateral Movement
+T1021.002
+SMB / Windows Admin Shares — PsExec for remote execution
+Exfiltration
+T1567.002
+Exfiltration to Cloud Storage — Cyberduck / rclone to S3-compatible endpoint
+Impact
+T1486
+Data Encrypted for Impact — simultaneous GPO-deployed encryption across all domain-joined Windows systems
+Impact
+T1490
+Inhibit System Recovery — VSS deletion, bcdedit recovery disabled, backup credential theft
+
+2.3  Attack Chain & Technologies
+Phase
+Action
+Attacker Tools
+Targeted Asset
+1 — Reconnaissance
+Before placing a single call, operators run AI-assisted OSINT to build a dossier on IT helpdesk staff — harvesting names, direct phone numbers, BPO contracts, and identity platform admin accounts from LinkedIn, company directories, and public sources across Portuguese and English simultaneously.[10,11]
+LinkedIn; company directories; AI-powered PII aggregation; Hunter.io
+Employee directory; BPO vendor relationships; Identity platform admin accounts
+2 — Vishing / Social Engineering
+An operator calls the helpdesk using AI voice synthesis to impersonate a locked-out employee with a convincing Brazilian Portuguese accent — manipulating staff into resetting MFA, installing AnyDesk, or navigating to an Okta phishing page. A single successful call is sufficient to yield admin credentials for the entire identity environment.[10,12]
+AI voice synthesis; Okta phishing pages; AnyDesk / TeamViewer
+IT helpdesk staff; Okta admin console; Employee credentials
+3 — MFA Bypass
+Where helpdesk manipulation alone is insufficient, SIM swapping gives operators direct control of the victim's phone number to intercept SMS OTPs, while push bombing bombards the victim with repeated Okta or Microsoft Authenticator approval requests until fatigue leads to acceptance — both techniques operate entirely independently of the victim's password.[11]
+SIM swap (carrier social engineering); MFA fatigue / push bombing; Okta admin console
+Employee mobile number; Okta MFA; Microsoft Authenticator
+4 — Identity Platform Compromise
+Okta admin access is used immediately to create backdoor admin accounts that survive any subsequent password reset, while Microsoft Graph API enumerates all Azure AD users, groups, roles, and conditional access policies. BYOVD drivers disable EDR on compromised endpoints, and infostealers vacuum browser session cookies and VPN credentials for further lateral movement.[11]
+Okta admin API; Microsoft Graph API; WarZone RAT; Raccoon / Vidar Stealer; BYOVD drivers
+Okta tenant; Azure AD / Entra ID; Endpoint EDR (disabled via BYOVD); Browser session cookies
+5 — Microsoft 365 Data Exfiltration
+Stolen Graph API tokens — which survive password resets — provide read access to every M365 resource the compromised account can reach, enabling bulk download of SharePoint loan documentation, OneDrive policy files, and Exchange mailboxes without any additional authentication. The activity is logged but indistinguishable from legitimate sync traffic without behavioral baselining.[11,12]
+Microsoft Graph API; SharePoint REST API; Exchange Web Services; attacker-controlled cloud storage
+SharePoint (loan documentation, policy files); OneDrive (employee files); Exchange (internal communications)
+6 — Extortion / Escalation
+Operators contact the organization directly via Telegram, citing LGPD liability and threatening to publish loan records, policy data, and internal communications on the ShinySp1d3r DLS — using regulatory fines of up to 2% of annual revenue as explicit pressure. If extortion fails, ransomware is deployed through SLH's 90% revenue-share agreement with RansomHub, converting the data theft into a full encryption incident.[10,11]
+Telegram; ShinySp1d3r DLS; RansomHub payload (90% revenue share)
+Organization reputation; LGPD compliance posture; All Windows infrastructure (if ransomware triggered)
+
+
+2.4  MITRE ATT&CK Mapping
+Tactic
+TTP ID
+Technique & Notes
+Reconnaissance
+T1589.002
+Gather Victim Identity Information — OSINT on helpdesk staff, mobile numbers, BPO relationships
+Reconnaissance
+T1598.004
+Phishing for Information — pretexting via impersonation prior to the vishing call
+Initial Access
+T1566.004
+Spearphishing Voice — vishing targeting IT helpdesk staff
+Initial Access
+T1199
+Trusted Relationship — BPO / third-party vendor exploited as lower-security entry point
+Initial Access
+T1078.004
+Valid Cloud Accounts — stolen Okta / Azure AD credentials used to access Microsoft 365
+Persistence
+T1098.001
+Account Manipulation — Okta backdoor admin account creation surviving credential resets
+Persistence
+T1098.003
+Account Manipulation: Additional Cloud Roles — elevated Azure AD / M365 role assignment
+Defense Evasion
+T1562.001
+Impair Defenses — BYOVD driver-based EDR disablement on compromised endpoints
+Defense Evasion
+T1036.005
+Masquerading — legitimate RMM tools (AnyDesk, TeamViewer) used as covert persistent access
+Credential Access
+T1621
+Multi-Factor Authentication Request Generation — MFA fatigue / push bombing against Okta and Microsoft Authenticator
+Credential Access
+T1539
+Steal Web Session Cookie — browser session token harvesting via infostealers
+Credential Access
+T1111
+Multi-Factor Authentication Interception — SIM swapping at mobile carrier
+Discovery
+T1087.004
+Account Discovery: Cloud Account — Azure AD / Entra ID enumeration via Microsoft Graph API
+Discovery
+T1526
+Cloud Service Discovery — M365 tenant enumeration: SharePoint sites, OneDrive, mailboxes, Teams
+Collection
+T1213.002
+Data from Information Repositories — SharePoint document library and OneDrive bulk download via Graph API
+Collection
+T1114.002
+Email Collection: Remote Email Collection — Exchange mailbox exfiltration via Graph API
+Exfiltration
+T1567
+Exfiltration to Cloud Storage — M365 data exported to attacker-controlled storage via Graph API token
+Impact
+T1657
+Financial Theft — LGPD-leveraged extortion; ransom demand citing data exposure and regulatory liability
+
+
+3.3  Attack Chain & Technologies
+Phase
+Action
+Attacker Tools
+Targeted Asset
+1 — Initial Access
+OPERA1ER invests in OSINT to identify exactly the right recipient before sending — macro-enabled Office documents arrive in finance staff inboxes disguised as payment confirmations, regulatory filings, or financial statements tailored to the target organization. Opening the document triggers a VBA macro that executes the initial payload silently in the background.[1,14]
+Spearphishing email; macro-enabled Office documents (XLS/DOC); VBA macro dropper
+Finance staff email; Microsoft Office (Excel/Word); Employee workstations in accounts payable and treasury
+2 — RAT Deployment & Persistence
+The macro drops Netwire RAT or a Metasploit agent, establishing a full-featured remote access foothold with keylogging, screen capture, file transfer, and shell capabilities. Multiple redundant persistence mechanisms — scheduled tasks and registry run keys — are set simultaneously so that removing one does not evict the operator.[1]
+Netwire RAT; Metasploit Framework agents; VBA macro dropper; Windows Scheduled Tasks; Registry run keys
+Windows Task Scheduler; Windows Registry; Employee workstations; Corporate network
+3 — Internal Reconnaissance
+OPERA1ER's signature is patience — operators spend 3 to 12 months silently mapping the environment via Netwire keylogging, screen capture, and living-off-the-land discovery tools. They observe real payment workflows over weeks to learn approval thresholds, authorization chains, and transaction timing before touching a single financial system.[1,14]
+Netwire RAT (keylogging, screen capture); Living-off-the-land binaries (net.exe, ipconfig, whoami, nltest); password dumping tools
+Active Directory; Internal network topology; Payment system interfaces; Finance team workstations; Credential stores
+4 — Lateral Movement
+Movement toward payment terminals and treasury workstations is deliberate and unhurried — operators use legitimate admin tools and harvested credentials to avoid triggering anomaly-based detection. The target is always the person with payment authorization privileges, not the infrastructure itself.[1]
+RDP; PsExec; WMI; Pass-the-Hash; harvested domain credentials
+Finance department workstations; Payment processing terminals; Treasury management systems; Domain controller
+5 — Payment System Access & Fraud Execution
+Using credentials harvested during the reconnaissance phase, operators access loan disbursement, interbank transfer, or insurance claims payment systems and inject fraudulent transactions or modify legitimate ones to redirect funds. Transactions are timed to local banking hours and sized to stay below detection thresholds, with multiple simultaneous transfers dispersed across money mule accounts to compress the response window.[1,14]
+Legitimate payment platform credentials (harvested); Remote desktop access; Transaction modification or injection
+Loan disbursement platform; Insurance claims payment system; Interbank transfer interface
+6 — Cash-Out & Exfiltration
+Pre-established LatAm money mule networks disperse funds across multiple accounts within hours of the fraudulent transactions clearing — by the time the organization identifies the anomaly, recovery is largely impossible. Credentials and internal documentation are retained via RAT exfiltration and recycled for future operations against the same organization or connected entities.[1]
+Money mule network; C2 infrastructure rotation; Data exfiltration via RAT
+Organization bank accounts; Payment processing infrastructure; Internal documentation (retained for future targeting)
+
+
+3.4  MITRE ATT&CK Mapping
+Tactic
+TTP ID
+Technique & Notes
+Initial Access
+T1566.001
+Spearphishing Attachment — macro-enabled Office documents targeting finance staff
+Execution
+T1059.005
+Command and Scripting Interpreter: VBA — macro execution on document open
+Execution
+T1053.005
+Scheduled Task/Job — persistence and payload execution via Windows Task Scheduler
+Persistence
+T1547.001
+Boot or Logon Autostart: Registry Run Keys — secondary persistence mechanism
+Persistence
+T1053.005
+Scheduled Task/Job — recurring execution ensuring RAT survives reboots
+Defense Evasion
+T1036
+Masquerading — RAT and tooling named to blend with legitimate Windows processes
+Defense Evasion
+T1218
+System Binary Proxy Execution — living-off-the-land binaries for reconnaissance and lateral movement
+Credential Access
+T1056.001
+Input Capture: Keylogging — Netwire RAT keylogging of payment platform credentials
+Credential Access
+T1003
+OS Credential Dumping — harvesting domain credentials for lateral movement
+Discovery
+T1082
+System Information Discovery — host profiling during extended reconnaissance phase
+Discovery
+T1016
+System Network Configuration Discovery — internal network mapping
+Discovery
+T1087
+Account Discovery — identifying finance staff with payment authorization privileges
+Collection
+T1113
+Screen Capture — monitoring payment workflows to understand transaction approval process
+Lateral Movement
+T1021.001
+Remote Services — RDP pivoting toward payment terminals and treasury workstations
+Lateral Movement
+T1550.002
+Use Alternate Authentication Material: Pass-the-Hash — lateral movement with harvested credentials
+Command & Control
+T1071.001
+Application Layer Protocol — Netwire RAT C2 over HTTP/HTTPS
+Command & Control
+T1573
+Encrypted Channel — encrypted C2 communications to evade inspection
+Exfiltration
+T1041
+Exfiltration Over C2 Channel — credentials and internal documentation exfiltrated via RAT
+Impact
+T1657
+Financial Theft — fraudulent payment instructions and unauthorized interbank transfers; $1.5M–$30M per operation
+
+
